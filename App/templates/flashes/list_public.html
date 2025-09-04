@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Flash informativo</h2>
+
+{% if featured %}
+<div class="alert alert-info">
+  <strong>Destacado:</strong> <a href="{{ url_for('public.details', flash_id=featured.id) }}">{{ featured.title }}</a>
+</div>
+{% endif %}
+
+<div class="list-group">
+  {% for f in flashes %}
+  <a class="list-group-item" href="{{ url_for('public.details', flash_id=f.id) }}">
+    <h5>{{ f.title }}</h5>
+    <small>{{ f.category }} | {{ f.entity }}</small>
+  </a>
+  {% else %}
+  <div class="alert alert-secondary">Sin resultados.</div>
+  {% endfor %}
+</div>
+{% endblock %}

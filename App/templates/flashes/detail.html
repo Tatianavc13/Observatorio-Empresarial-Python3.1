@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<h3>{{ f.title }}</h3>
+<p>{{ f.description }}</p>
+<ul>
+  <li><strong>Categoría:</strong> {{ f.category }}</li>
+  <li><strong>Entidad:</strong> {{ f.entity }}</li>
+  <li><strong>Lugar:</strong> {{ f.location }}</li>
+  <li><strong>Modalidad:</strong> {{ f.modality }}</li>
+  <li><strong>Costo:</strong> {{ f.cost }}</li>
+  <li><a href="{{ f.link }}" target="_blank">Más información</a></li>
+</ul>
+{% endblock %}
