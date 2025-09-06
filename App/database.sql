@@ -42,8 +42,8 @@ CREATE TABLE flashes (
 INSERT INTO users (name, email, password_hash, role, active)
 VALUES (
     'Administrador',
-    'admin@observatorio.com',
-    '$2b$12$WZpTY4Ex0VJByS7gXQya4OaR5yQ/3W5Xo8gZP5Ex7X2Dx4lqL0c3G', -- clave: admin123
+    'administrador@observatorio.com',
+    '$2a$12$khzr2ICTSXr.QSA4sTUCveZOlD9HXUQAXzrIe./1RY2jAlfifgbg6', -- clave: admin123
     'admin',
     TRUE
 );
