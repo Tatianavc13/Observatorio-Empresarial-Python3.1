@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  .card { border: 0; box-shadow: 0 10px 30px rgba(0,0,0,.06); }
+  .section-title { font-size: .9rem; color: #6c757d; text-transform: uppercase; letter-spacing: .04em; }
+</style>
+
+<div class="container py-3 py-md-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">
+      {% if flash %}
+        Editar registro del Observatorio
+      {% else %}
+        Nuevo registro del Observatorio
+      {% endif %}
+    </h4>
+    <div>
+      <a class="btn btn-outline-secondary" href="{{ url_for('flashes.admin_list') }}">Volver</a>
+    </div>
+  </div>
+
+  <form method="post" class="needs-validation" novalidate>
+    <div class="card mb-3">
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-8">
+            <label class="form-label">Título</label>
+            <input class="form-control" name="title" value="{{ flash.title if flash else '' }}" required>
+            <div class="invalid-feedback">El título es obligatorio.</div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Categoría</label>
+            <select class="form-select" name="category">
+              <option value="">Selecciona...</option>
+              <option value="Convocatoria" {{ 'selected' if flash and flash.category == 'Convocatoria' else '' }}>Convocatoria</option>
+              <option value="Evento" {{ 'selected' if flash and flash.category == 'Evento' else '' }}>Evento</option>
+              <option value="Capacitación" {{ 'selected' if flash and flash.category == 'Capacitación' else '' }}>Capacitación</option>
+              <option value="Emprendimiento" {{ 'selected' if flash and flash.category == 'Emprendimiento' else '' }}>Emprendimiento</option>
+              <option value="Financiación" {{ 'selected' if flash and flash.category == 'Financiación' else '' }}>Financiación</option>
+            </select>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Entidad organizadora</label>
+            <input class="form-control" name="entity" value="{{ flash.entity if flash else '' }}">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Enlace (URL)</label>
+            <input class="form-control" name="link" type="url" placeholder="https://..." value="{{ flash.link if flash else '' }}">
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Ubicación</label>
+            <input class="form-control" name="location" placeholder="Ciudad / País" value="{{ flash.location if flash else '' }}">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Costo</label>
+            <input class="form-control" name="cost" placeholder="Gratis / $" value="{{ flash.cost if flash else '' }}">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Modalidad</label>
+            <select class="form-select" name="modality">
+              <option value="">Selecciona...</option>
+              <option value="Virtual" {{ 'selected' if flash and flash.modality == 'Virtual' else '' }}>Virtual</option>
+              <option value="Presencial" {{ 'selected' if flash and flash.modality == 'Presencial' else '' }}>Presencial</option>
+              <option value="Híbrido" {{ 'selected' if flash and flash.modality == 'Híbrido' else '' }}>Híbrido</option>
+            </select>
+          </div>
+
+          <div class="col-12">
+            <label class="form-label">Descripción</label>
+            <textarea class="form-control" name="description" rows="5" placeholder="Describe brevemente el evento o convocatoria">{{ flash.description if flash else '' }}</textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label">Fecha de inicio</label>
+            <input class="form-control" type="date" name="start_date" value="{{ flash.start_date.strftime('%Y-%m-%d') if flash and flash.start_date else '' }}">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Fecha de fin</label>
+            <input class="form-control" type="date" name="end_date" value="{{ flash.end_date.strftime('%Y-%m-%d') if flash and flash.end_date else '' }}">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Fecha límite (inscripciones)</label>
+            <input class="form-control" type="date" name="deadline" value="{{ flash.deadline.strftime('%Y-%m-%d') if flash and flash.deadline else '' }}">
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Horario</label>
+            <input class="form-control" name="schedule" placeholder="Ej: 8:00 AM - 12:00 PM" value="{{ flash.schedule if flash else '' }}">
+          </div>
+
+          <div class="col-md-6 d-flex align-items-center gap-3">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="visible" id="visibleCheck" {{ 'checked' if not flash or flash.visible else '' }}>
+              <label class="form-check-label" for="visibleCheck">Visible al público</label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="featured" id="featuredCheck" {{ 'checked' if flash and flash.featured else '' }}>
+              <label class="form-check-label" for="featuredCheck">Destacado</label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="d-flex gap-2">
+      <a class="btn btn-outline-secondary" href="{{ url_for('flashes.admin_list') }}">Cancelar</a>
+      <button class="btn btn-primary">
+        {% if flash %}
+          Actualizar
+        {% else %}
+          Guardar
+        {% endif %}
+      </button>
+    </div>
+  </form>
+</div>
+
+<script>
+  (function(){
+    const form = document.querySelector('.needs-validation');
+    form.addEventListener('submit', function(e){
+      if(!form.checkValidity()){
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      form.classList.add('was-validated');
+    });
+  })();
+</script>
+{% endblock %}
+
+

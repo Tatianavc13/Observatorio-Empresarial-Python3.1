@@ -8,13 +8,22 @@ auth_bp = Blueprint("auth", __name__, template_folder="../templates/auth")
 @auth_bp.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        email = request.form.get("email")
-        password = request.form.get("password")
-        user = User.query.filter_by(email=email, active=True).first()
-        if user and user.check_password(password):
+        raw_email = request.form.get("email") or ""
+        email = raw_email.strip().lower()
+        password = (request.form.get("password") or "")
+
+        # Búsqueda case-insensitive por email
+        user = User.query.filter(db.func.lower(User.email) == email).first()
+
+        if not user:
+            flash("Usuario no encontrado", "danger")
+        elif not user.active:
+            flash("El usuario está inactivo", "warning")
+        elif user.check_password(password):
             login_user(user)
             return redirect(url_for("flashes.admin_list"))
-        flash("Credenciales inválidas", "danger")
+        else:
+            flash("Contraseña incorrecta", "danger")
     return render_template("auth/login.html")
 
 @auth_bp.route("/logout")

@@ -1,7 +1,6 @@
 from datetime import datetime
 from flask_login import UserMixin
 from . import db
-from passlib.hash import bcrypt
 
 class User(UserMixin, db.Model):
     __tablename__ = "users"
@@ -13,10 +12,12 @@ class User(UserMixin, db.Model):
     active = db.Column(db.Boolean, default=True)
 
     def set_password(self, password: str):
-        self.password_hash = bcrypt.hash(password)
+        # Almacenar contraseña en texto plano (no recomendado en producción)
+        self.password_hash = password
 
     def check_password(self, password: str) -> bool:
-        return bcrypt.verify(password, self.password_hash)
+        # Comparar directamente en texto plano
+        return (self.password_hash or "") == (password or "")
 
 class Flash(db.Model):
     __tablename__ = "flashes"
@@ -37,3 +38,12 @@ class Flash(db.Model):
     featured = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class Company(db.Model):
+    __tablename__ = "companies"
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(255), nullable=False)
+    headquarter = db.Column(db.String(255))
+    phone = db.Column(db.String(50))
+    website_url = db.Column(db.String(512))
+    logo_url = db.Column(db.String(512))

@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h3>Administrar flashes</h3>
+  <div class="d-flex gap-2">
+    <a class="btn btn-primary" href="{{ url_for('flashes.create') }}">Nuevo</a>
+    <a class="btn btn-outline-secondary" href="{{ url_for('public.home') }}">Ver público</a>
+    <a class="btn btn-outline-danger" href="{{ url_for('auth.logout') }}">Cerrar sesión</a>
+  </div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div id="flash-messages" class="mb-3">
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+
+{% if flashes and flashes|length %}
+  <div class="table-responsive">
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Título</th>
+          <th>Categoría</th>
+          <th>Entidad</th>
+          <th>Ubicación</th>
+          <th>Inicio</th>
+          <th>Visible</th>
+          <th>Destacado</th>
+          <th>Actualizado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for f in flashes %}
+        <tr>
+          <td>{{ f.id }}</td>
+          <td>{{ f.title }}</td>
+          <td>{{ f.category or '-' }}</td>
+          <td>{{ f.entity or '-' }}</td>
+          <td>{{ f.location or '-' }}</td>
+          <td>{{ f.start_date or '-' }}</td>
+          <td>
+            <span class="badge bg-{{ 'success' if f.visible else 'secondary' }}">
+              {{ 'Sí' if f.visible else 'No' }}
+            </span>
+          </td>
+          <td>
+            <span class="badge bg-{{ 'warning' if f.featured else 'light text-dark' }}">
+              {{ 'Sí' if f.featured else 'No' }}
+            </span>
+          </td>
+          <td>{{ f.updated_at.strftime('%d/%m/%Y %H:%M') if f.updated_at else '-' }}</td>
+          <td>
+            <div class="btn-group btn-group-sm">
+              <a class="btn btn-outline-primary" href="{{ url_for('flashes.edit', id=f.id) }}" title="Editar">
+                <i class="bi bi-pencil"></i>
+              </a>
+              <button class="btn btn-outline-{{ 'secondary' if f.visible else 'success' }}" 
+                      onclick="toggleVisibility({{ f.id }}, {{ f.visible|lower }})" 
+                      title="{{ 'Ocultar' if f.visible else 'Mostrar' }}">
+                <i class="bi bi-eye{{ '' if f.visible else '-slash' }}"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <div class="text-center py-5">
+    <i class="bi bi-inbox display-1 text-muted"></i>
+    <p class="text-muted mt-3">No hay registros aún.</p>
+    <a class="btn btn-primary" href="{{ url_for('flashes.create') }}">Crear el primero</a>
+  </div>
+{% endif %}
+
+<script>
+// Ocultar mensajes flash después de 15 segundos
+setTimeout(() => {
+  const flashMessages = document.getElementById('flash-messages');
+  if (flashMessages) {
+    flashMessages.style.display = 'none';
+  }
+}, 15000);
+
+// Toggle visibilidad
+function toggleVisibility(id, currentVisible) {
+  if (confirm(currentVisible ? '¿Ocultar este registro?' : '¿Mostrar este registro?')) {
+    fetch(`/admin/flashes/${id}/toggle-visibility`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        location.reload();
+      } else {
+        alert('Error al actualizar');
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('Error al actualizar');
+    });
+  }
+}
+</script>
+{% endblock %}
+
+

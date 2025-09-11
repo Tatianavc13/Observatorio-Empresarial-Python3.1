@@ -1,21 +1,132 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Flash informativo</h2>
+<style>
+  .hero { padding: 24px 0; text-align: center; background: linear-gradient(180deg, rgba(13,110,253,.06), transparent); border-radius: 12px; margin-bottom: 16px; }
+  .hero img { max-height: 80px; object-fit: contain; }
+  .kpi-card { border: 0; box-shadow: 0 6px 20px rgba(0,0,0,.06); }
+</style>
 
-{% if featured %}
-<div class="alert alert-info">
-  <strong>Destacado:</strong> <a href="{{ url_for('public.details', flash_id=featured.id) }}">{{ featured.title }}</a>
-</div>
-{% endif %}
+<div class="container-fluid py-2 py-md-3">
+  <div class="hero">
+    {% if company and company.logo_url %}
+      <img src="{{ company.logo_url }}" alt="Logo" class="mb-2">
+    {% endif %}
+    <h3 class="mb-1">{{ company.name if company else 'Observatorio Empresarial' }}</h3>
+    {% if company and (company.headquarter or company.website_url or company.phone) %}
+      <div class="text-muted">
+        {{ company.headquarter or '' }}
+        {% if company.phone %} · {{ company.phone }}{% endif %}
+        {% if company.website_url %} · <a href="{{ company.website_url }}" target="_blank">Sitio web</a>{% endif %}
+      </div>
+    {% endif %}
+  </div>
 
-<div class="list-group">
-  {% for f in flashes %}
-  <a class="list-group-item" href="{{ url_for('public.details', flash_id=f.id) }}">
-    <h5>{{ f.title }}</h5>
-    <small>{{ f.category }} | {{ f.entity }}</small>
-  </a>
-  {% else %}
-  <div class="alert alert-secondary">Sin resultados.</div>
-  {% endfor %}
+  {% if featured %}
+  <div class="alert alert-info">Destacado: <a href="{{ url_for('public.details', flash_id=featured.id) }}">{{ featured.title }}</a></div>
+  {% endif %}
+
+  <div class="row g-3 mb-3">
+    {% for category, count in category_counts.items() %}
+      <div class="col-6 col-md-3">
+        <div class="card kpi-card">
+          <div class="card-body text-center">
+            <div class="text-muted" style="font-size:.85rem">{{ category }}</div>
+            <div class="display-6">{{ count }}</div>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <div class="card mb-3">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Actividad mensual</h5>
+        <small class="text-muted">Clic en una barra para ver detalles</small>
+      </div>
+      <canvas id="activityChart" height="90"></canvas>
+    </div>
+  </div>
+
+  <div class="row" id="results"></div>
+
+  <div class="row g-2 g-md-3">
+    {% for f in flashes %}
+      <div class="col-12 col-sm-6 col-xl-4">
+        <div class="card h-100" style="border-radius:10px;">
+          <div class="card-body d-flex flex-column p-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <h5 class="card-title mb-0">{{ f.title }}</h5>
+              {% if f.category %}<span class="badge bg-primary">{{ f.category }}</span>{% endif %}
+            </div>
+            <p class="card-text flex-grow-1" style="font-size:.95rem;">{{ f.description or '' }}</p>
+            <div class="d-flex gap-2 mt-auto">
+              <a href="{{ url_for('public.details', flash_id=f.id) }}" class="btn btn-outline-primary btn-sm">Ver más</a>
+              <a href="{{ url_for('public.print_flash', flash_id=f.id) }}?auto=1" class="btn btn-outline-secondary btn-sm">PDF</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    {% else %}
+      <div class="alert alert-secondary">Sin resultados.</div>
+    {% endfor %}
+  </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+  const monthlyData = {{ monthly|tojson }};
+  const monthKeys = monthlyData.map(x => x[0]); // 'YYYY-MM'
+  const labels = monthKeys.map(k => {
+    try {
+      const d = new Date(k + '-01T00:00:00');
+      const month = new Intl.DateTimeFormat('es-CO', { month: 'long' }).format(d);
+      const year = d.getFullYear();
+      const cap = month.charAt(0).toUpperCase() + month.slice(1);
+      return `${cap} (${year})`;
+    } catch (e) { return k; }
+  });
+  const values = monthlyData.map(x => x[1]);
+
+  const ctx = document.getElementById('activityChart');
+  if (ctx) {
+    const chart = new Chart(ctx, {
+      type: 'bar',
+      data: { labels, datasets: [{ label: 'Publicaciones', data: values, backgroundColor: 'rgba(13,110,253,.6)', borderRadius: 6 }] },
+      options: {
+        scales: { y: { beginAtZero: true, ticks: { precision:0 } } },
+        onClick: (evt, els) => {
+          if (!els.length) return;
+          const idx = els[0].index;
+          const month = monthKeys[idx]; // usar clave ISO para filtrar
+          const container = document.getElementById('results');
+          container.innerHTML = '';
+          fetch(`{{ url_for('api.api_list') }}`)
+            .then(r => r.json())
+            .then(items => {
+              const subset = items.filter(x => x.start_date && x.start_date.startsWith(month));
+              if (!subset.length) { container.innerHTML = '<div class="text-muted">Sin resultados para ' + month + '</div>'; return; }
+              const frag = document.createDocumentFragment();
+              subset.forEach(x => {
+                const col = document.createElement('div');
+                col.className = 'col-md-4 mb-3';
+                col.innerHTML = `
+                  <div class="card h-100">
+                    <div class="card-body">
+                      <div class="small text-muted">${x.category || ''}</div>
+                      <h6 class="mb-2">${x.title}</h6>
+                      <div class="small">${x.location || ''}</div>
+                      <div class="small">Inicio: ${x.start_date || '-'}</div>
+                    </div>
+                  </div>`;
+                frag.appendChild(col);
+              });
+              container.appendChild(frag);
+              container.scrollIntoView({ behavior: 'smooth' });
+            });
+        }
+      }
+    });
+  }
+</script>
 {% endblock %}

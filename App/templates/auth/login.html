@@ -1,52 +1,130 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="row justify-content-center">
-  <div class="col-md-4">
-    <h3>Iniciar sesión</h3>
-    
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        <div id="flash-messages">
-          {% for category, message in messages %}
-            <div class="alert alert-{{ category }}">
-              {{ message }}
-            </div>
-          {% endfor %}
+<style>
+  .login-bg {
+    min-height: calc(100vh - 120px);
+    display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(1200px 400px at 80% -10%, rgba(13,110,253,.08), transparent 60%),
+                radial-gradient(1000px 300px at 0% 110%, rgba(25,135,84,.08), transparent 60%);
+  }
+  .login-card { animation: floatIn .4s ease-out; border: 0; box-shadow: 0 10px 30px rgba(0,0,0,.08); }
+  @keyframes floatIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .input-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #6c757d; }
+  .has-icon input { padding-left: 36px; }
+  .eye-btn { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); border: 0; background: transparent; }
+  .shake { animation: shake .3s linear; }
+  @keyframes shake { 0%,100%{transform: translateX(0);} 25%{transform: translateX(-4px);} 75%{transform: translateX(4px);} }
+</style>
+
+<div class="login-bg">
+  <div class="col-11 col-sm-9 col-md-7 col-lg-5 col-xl-4">
+    <div class="card login-card">
+      <div class="card-body p-4 p-md-5">
+        <div class="text-center mb-3">
+          <h4 class="mb-1">Iniciar sesión</h4>
+          <div class="text-muted">Accede al panel administrativo</div>
         </div>
-      {% endif %}
-    {% endwith %}
-    
-    <form method="post">
-      <input class="form-control mb-2" type="email" name="email" placeholder="Correo" required>
-      <div style="position: relative; width: fit-content;">
-        <input id="password" class="form-control mb-2" type="password" name="password" placeholder="Contraseña" required />
-        <img id="togglePassword" src="{{ url_for('static', filename='vision-target.png') }}" alt="Mostrar/Ocultar" 
-          style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
-          width: 20px; height: 20px; cursor: pointer;" />
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div id="flash-messages" class="mb-3">
+              {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                  {{ message }}
+                  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        <form id="loginForm" method="post" novalidate>
+          <div class="mb-3 position-relative has-icon">
+            <i class="bi bi-envelope input-icon"></i>
+            <input id="email" class="form-control" type="email" name="email" placeholder="Correo electrónico" required>
+            <div class="invalid-feedback">Ingresa un correo válido.</div>
+          </div>
+
+          <div class="mb-2 position-relative has-icon">
+            <i class="bi bi-lock input-icon"></i>
+            <input id="password" class="form-control" type="password" name="password" placeholder="Contraseña" required minlength="3" />
+            <button id="togglePassword" class="eye-btn" type="button" aria-label="Mostrar u ocultar">
+              <i id="toggleIcon" class="bi bi-eye"></i>
+            </button>
+            <div class="invalid-feedback">Ingresa tu contraseña.</div>
+          </div>
+
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="rememberCheck">
+              <label class="form-check-label" for="rememberCheck">Recordarme</label>
+            </div>
+            <a class="small" href="#" onclick="event.preventDefault(); alert('Funcionalidad en construcción');">¿Olvidaste tu contraseña?</a>
+          </div>
+
+          <button id="submitBtn" class="btn btn-primary w-100" type="submit" disabled>
+            <span class="spinner-border spinner-border-sm me-2 d-none" role="status" aria-hidden="true"></span>
+            Ingresar
+          </button>
+        </form>
+
+        <div class="text-center mt-3">
+          <a class="text-decoration-none" href="{{ url_for('public.home') }}">Volver al sitio</a>
+        </div>
       </div>
-      <button class="btn btn-primary w-100">Ingresar</button>
-    </form>
+    </div>
   </div>
 </div>
 
 <script>
+  const form = document.getElementById('loginForm');
+  const email = document.getElementById('email');
   const password = document.getElementById('password');
   const toggle = document.getElementById('togglePassword');
+  const submitBtn = document.getElementById('submitBtn');
+  const spinner = submitBtn.querySelector('.spinner-border');
 
+  // Validación simple y habilitar botón
+  function validate() {
+    const ok = email.value.trim().length > 3 && email.checkValidity() && password.value.trim().length >= 3;
+    submitBtn.disabled = !ok;
+  }
+  email.addEventListener('input', validate);
+  password.addEventListener('input', validate);
+
+  // Mostrar / ocultar contraseña
   toggle.onclick = function() {
+    const icon = document.getElementById('toggleIcon');
     if(password.type === "password") {
       password.type = "text";
+      icon.classList.remove('bi-eye');
+      icon.classList.add('bi-eye-slash');
     } else {
       password.type = "password";
+      icon.classList.remove('bi-eye-slash');
+      icon.classList.add('bi-eye');
     }
   }
 
-  // Ocultar mensajes flash después de 3 segundos
-  setTimeout(() => {
-    const flashMessages = document.getElementById('flash-messages');
-    if (flashMessages) {
-      flashMessages.style.display = 'none';
+  // Envío con feedback
+  form.addEventListener('submit', function(e) {
+    if(!form.checkValidity()){
+      e.preventDefault();
+      e.stopPropagation();
+      form.classList.add('was-validated');
+      form.classList.add('shake');
+      setTimeout(()=> form.classList.remove('shake'), 300);
+      return;
     }
-  }, 3000);
+    spinner.classList.remove('d-none');
+    submitBtn.setAttribute('disabled', 'disabled');
+  });
+
+  // Ocultar mensajes flash después de 4 segundos
+  setTimeout(() => {
+    const wrap = document.getElementById('flash-messages');
+    if (wrap) wrap.style.display = 'none';
+  }, 4000);
 </script>
 {% endblock %}
+
